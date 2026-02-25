@@ -42,3 +42,29 @@ model Config {
 
   @@map("configs")
 }
+
+model Menu {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isPublished Boolean @default(false)
+  label String
+  url String
+  order Int?
+  is_visible Boolean?
+  icon String?
+  icon_type String?
+  is_system Boolean?
+  additionalBlocks Json?
+  
+  @@map("menus")
+}
+
+model MenuStructure {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  fields    Json?
+  
+  @@map("menu_structures")
+}
