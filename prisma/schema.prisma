@@ -133,12 +133,12 @@ model Team {
   isPublished Boolean @default(false)
   fio String?
   dolzhnost String?
-  opisanie String?
   avatar String?
   additionalBlocks Json?
   
   @@map("teams")
 }
+
 
 
 model TeamStructure {
