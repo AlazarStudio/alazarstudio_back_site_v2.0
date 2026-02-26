@@ -68,3 +68,60 @@ model MenuStructure {
   
   @@map("menu_structures")
 }
+
+model Cases {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isPublished Boolean @default(false)
+  nazvanie String?
+  zadacha String?
+  reshenie String?
+  logotip String?
+  tegi String?
+  komanda String?
+  prosmotry Int?
+  galereya String?
+  additionalBlocks Json?
+  
+  @@map("casess")
+}
+
+
+
+
+
+
+
+
+
+
+
+model CasesStructure {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  fields    Json?
+  
+  @@map("cases_structures")
+}
+
+model Tags {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isPublished Boolean @default(false)
+  nazvanie String?
+  additionalBlocks Json?
+  
+  @@map("tagss")
+}
+
+model TagsStructure {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  fields    Json?
+  
+  @@map("tags_structures")
+}

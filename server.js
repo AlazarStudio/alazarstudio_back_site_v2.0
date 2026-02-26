@@ -13,6 +13,10 @@ import generateRoutes from "./app/generate/generate.routes.js"
 import mediaRoutes from "./app/media/media.routes.js"
 import menuRoutes from "./app/menu/menu.routes.js"
 import menuStructureRoutes from "./app/menu/menuStructure.routes.js"
+import casesRoutes from "./app/cases/cases.routes.js"
+import casesStructureRoutes from "./app/cases/casesStructure.routes.js"
+import tagsRoutes from "./app/tags/tags.routes.js"
+import tagsStructureRoutes from "./app/tags/tagsStructure.routes.js"
 
 import cors from "cors"
 
@@ -45,6 +49,10 @@ async function main() {
   app.use("/api/admin/media", mediaRoutes)
   app.use("/api/menu", menuRoutes)
   app.use("/api/menuStructure", menuStructureRoutes)
+  app.use("/api/cases", casesRoutes)
+  app.use("/api/casesStructure", casesStructureRoutes)
+  app.use("/api/tags", tagsRoutes)
+  app.use("/api/tagsStructure", tagsStructureRoutes)
 
   app.use(notFound)
   app.use(errorHandler)
