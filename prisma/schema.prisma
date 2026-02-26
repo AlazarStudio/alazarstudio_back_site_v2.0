@@ -81,11 +81,11 @@ model Cases {
   tegi String?
   komanda String?
   prosmotry Int?
-  galereya String?
   additionalBlocks Json?
   
   @@map("casess")
 }
+
 
 
 
@@ -124,4 +124,28 @@ model TagsStructure {
   fields    Json?
   
   @@map("tags_structures")
+}
+
+model Team {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isPublished Boolean @default(false)
+  fio String?
+  dolzhnost String?
+  opisanie String?
+  avatar String?
+  additionalBlocks Json?
+  
+  @@map("teams")
+}
+
+
+model TeamStructure {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  fields    Json?
+  
+  @@map("team_structures")
 }

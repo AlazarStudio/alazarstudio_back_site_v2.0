@@ -17,6 +17,8 @@ import casesRoutes from "./app/cases/cases.routes.js"
 import casesStructureRoutes from "./app/cases/casesStructure.routes.js"
 import tagsRoutes from "./app/tags/tags.routes.js"
 import tagsStructureRoutes from "./app/tags/tagsStructure.routes.js"
+import teamRoutes from "./app/team/team.routes.js"
+import teamStructureRoutes from "./app/team/teamStructure.routes.js"
 
 import cors from "cors"
 
@@ -53,6 +55,8 @@ async function main() {
   app.use("/api/casesStructure", casesStructureRoutes)
   app.use("/api/tags", tagsRoutes)
   app.use("/api/tagsStructure", tagsStructureRoutes)
+  app.use("/api/team", teamRoutes)
+  app.use("/api/teamStructure", teamStructureRoutes)
 
   app.use(notFound)
   app.use(errorHandler)
