@@ -75,16 +75,22 @@ model Cases {
   updatedAt DateTime @updatedAt @map("updated_at")
   isPublished Boolean @default(false)
   nazvanie String?
+  prev_yu String?
   zadacha String?
   reshenie String?
   logotip String?
   tegi String?
   komanda String?
+  dlya_magazina Boolean?
+  tsena Int?
   prosmotry Int?
   additionalBlocks Json?
   
   @@map("casess")
 }
+
+
+
 
 
 

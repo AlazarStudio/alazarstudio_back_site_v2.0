@@ -70,18 +70,22 @@ async function ensureMongoTimestamps() {
 }
 
 async function findManyViaMongo(skip, take) {
+  return findManyViaMongoWithFilter(skip, take, {})
+}
+
+async function findManyViaMongoWithFilter(skip, take, filter) {
   await ensureMongoTimestamps()
   const [listResult, countResult] = await Promise.all([
     prisma.$runCommandRaw({
       find: COLLECTION_NAME,
-      filter: {},
+      filter: filter || {},
       sort: { created_at: -1 },
       skip,
       limit: take
     }),
     prisma.$runCommandRaw({
       count: COLLECTION_NAME,
-      query: {}
+      query: filter || {}
     })
   ])
 
@@ -187,6 +191,45 @@ export const getTagss = asyncHandler(async (req, res) => {
     ])
   } else {
     const result = await findManyViaMongo(skip, take)
+    items = result.docs
+    total = result.total
+  }
+
+  res.json({
+    tags: items,
+    total,
+    page: parseInt(page),
+    limit: take,
+    totalPages: Math.ceil(total / take)
+  })
+})
+
+// @desc    Get published tags (public)
+// @route   GET /api/tags/public
+// @access  Public
+export const getPublicTagss = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 200 } = req.query
+  const skip = (parseInt(page) - 1) * parseInt(limit)
+  const take = parseInt(limit)
+  const model = getModel()
+
+  let items = []
+  let total = 0
+
+  if (model) {
+    [items, total] = await Promise.all([
+      model.findMany({
+        where: { isPublished: true },
+        skip,
+        take,
+        orderBy: {
+          createdAt: "desc"
+        }
+      }),
+      model.count({ where: { isPublished: true } })
+    ])
+  } else {
+    const result = await findManyViaMongoWithFilter(skip, take, { isPublished: true })
     items = result.docs
     total = result.total
   }

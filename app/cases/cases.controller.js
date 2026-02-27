@@ -17,6 +17,38 @@ function sanitizeCreateData(payload) {
   const normalizedRest = Object.fromEntries(
     Object.entries(rest).map(([key, value]) => [keyAliases[key] || key, value])
   )
+
+  const toIntOrNull = (value) => {
+    if (value === null || value === undefined || value === "") return null
+    const raw = typeof value === "object" && value !== null && "value" in value ? value.value : value
+    if (raw === null || raw === undefined || raw === "") return null
+    const parsed = Number(raw)
+    return Number.isFinite(parsed) ? Math.trunc(parsed) : null
+  }
+
+  const toBoolOrNull = (value) => {
+    if (value === null || value === undefined || value === "") return null
+    const raw = typeof value === "object" && value !== null && "value" in value ? value.value : value
+    if (raw === null || raw === undefined || raw === "") return null
+    if (typeof raw === "boolean") return raw
+    if (typeof raw === "string") {
+      const lower = raw.trim().toLowerCase()
+      if (lower === "true" || lower === "1") return true
+      if (lower === "false" || lower === "0") return false
+    }
+    return Boolean(raw)
+  }
+
+  if (Object.prototype.hasOwnProperty.call(normalizedRest, "tsena")) {
+    normalizedRest.tsena = toIntOrNull(normalizedRest.tsena)
+  }
+  if (Object.prototype.hasOwnProperty.call(normalizedRest, "prosmotry")) {
+    normalizedRest.prosmotry = toIntOrNull(normalizedRest.prosmotry)
+  }
+  if (Object.prototype.hasOwnProperty.call(normalizedRest, "dlya_magazina")) {
+    normalizedRest.dlya_magazina = toBoolOrNull(normalizedRest.dlya_magazina)
+  }
+
   return {
     ...normalizedRest,
     isPublished: typeof isPublished === "boolean" ? isPublished : false,
@@ -70,18 +102,22 @@ async function ensureMongoTimestamps() {
 }
 
 async function findManyViaMongo(skip, take) {
+  return findManyViaMongoWithFilter(skip, take, {})
+}
+
+async function findManyViaMongoWithFilter(skip, take, filter) {
   await ensureMongoTimestamps()
   const [listResult, countResult] = await Promise.all([
     prisma.$runCommandRaw({
       find: COLLECTION_NAME,
-      filter: {},
+      filter: filter || {},
       sort: { created_at: -1 },
       skip,
       limit: take
     }),
     prisma.$runCommandRaw({
       count: COLLECTION_NAME,
-      query: {}
+      query: filter || {}
     })
   ])
 
@@ -187,6 +223,45 @@ export const getCasess = asyncHandler(async (req, res) => {
     ])
   } else {
     const result = await findManyViaMongo(skip, take)
+    items = result.docs
+    total = result.total
+  }
+
+  res.json({
+    cases: items,
+    total,
+    page: parseInt(page),
+    limit: take,
+    totalPages: Math.ceil(total / take)
+  })
+})
+
+// @desc    Get published cases (public)
+// @route   GET /api/cases/public
+// @access  Public
+export const getPublicCasess = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 100 } = req.query
+  const skip = (parseInt(page) - 1) * parseInt(limit)
+  const take = parseInt(limit)
+  const model = getModel()
+
+  let items = []
+  let total = 0
+
+  if (model) {
+    [items, total] = await Promise.all([
+      model.findMany({
+        where: { isPublished: true },
+        skip,
+        take,
+        orderBy: {
+          createdAt: "desc"
+        }
+      }),
+      model.count({ where: { isPublished: true } })
+    ])
+  } else {
+    const result = await findManyViaMongoWithFilter(skip, take, { isPublished: true })
     items = result.docs
     total = result.total
   }

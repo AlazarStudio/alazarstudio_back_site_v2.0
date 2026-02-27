@@ -2,6 +2,7 @@ import express from "express"
 import { protect } from "../middleware/auth.middleware.js"
 import {
   getTagss,
+  getPublicTagss,
   getTagsById,
   createTags,
   updateTags,
@@ -9,6 +10,8 @@ import {
 } from "./tags.controller.js"
 
 const router = express.Router()
+
+router.get("/public", getPublicTagss)
 
 router
   .route("/")
