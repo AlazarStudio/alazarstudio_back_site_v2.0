@@ -29,6 +29,8 @@ import cors from "cors"
 dotenv.config()
 
 const app = express()
+const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || "50mb"
+const importBodyLimit = process.env.REQUEST_IMPORT_BODY_LIMIT || "1gb"
 
 // Настройка CORS для работы с фронтендом
 app.use(cors({
@@ -41,7 +43,9 @@ app.use(cors({
 async function main() {
   if (process.env.NODE_ENV === "development") app.use(morgan("dev"))
 
-  app.use(express.json())
+  app.use("/api/admin/data/import", express.json({ limit: importBodyLimit }))
+  app.use(express.json({ limit: requestBodyLimit }))
+  app.use(express.urlencoded({ extended: true, limit: requestBodyLimit }))
 
   const __dirname = path.resolve()
 

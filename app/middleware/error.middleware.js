@@ -5,7 +5,14 @@ export const notFound = (req, res, next) => {
 }
 
 export const errorHandler = (err, req, res, next) => {
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode
+  const isPayloadTooLarge =
+    err?.type === "entity.too.large" ||
+    err?.name === "PayloadTooLargeError" ||
+    err?.status === 413
+
+  const statusCode = isPayloadTooLarge
+    ? 413
+    : (res.statusCode === 200 ? 500 : res.statusCode)
   
   // Если ответ уже отправлен, не пытаемся отправить его снова
   if (res.headersSent) {

@@ -157,6 +157,38 @@ function resourceNameToSlug(resourceName = "") {
 
 const DYNAMIC_PAGES_COLLECTION = "dynamic_pages"
 
+function ensureServerBodyParserLimits(serverContent) {
+  let content = String(serverContent || "")
+
+  if (!content.includes("requestBodyLimit")) {
+    content = content.replace(
+      /const app = express\(\)\s*/,
+      `const app = express()\nconst requestBodyLimit = process.env.REQUEST_BODY_LIMIT || "50mb"\nconst importBodyLimit = process.env.REQUEST_IMPORT_BODY_LIMIT || "1gb"\n\n`
+    )
+  }
+
+  content = content.replace(
+    /app\.use\(express\.json\(\)\)/,
+    `app.use("/api/admin/data/import", express.json({ limit: importBodyLimit }))\n  app.use(express.json({ limit: requestBodyLimit }))\n  app.use(express.urlencoded({ extended: true, limit: requestBodyLimit }))`
+  )
+
+  if (!content.includes('/api/admin/data/import", express.json({ limit: importBodyLimit })')) {
+    content = content.replace(
+      /app\.use\(express\.json\(\{[^)]*\}\)\)/,
+      `app.use("/api/admin/data/import", express.json({ limit: importBodyLimit }))\n  $&`
+    )
+  }
+
+  if (!content.includes("express.urlencoded({ extended: true, limit: requestBodyLimit })")) {
+    content = content.replace(
+      /app\.use\(express\.json\(\{[^)]*\}\)\)\s*/,
+      `$&\n  app.use(express.urlencoded({ extended: true, limit: requestBodyLimit }))\n`
+    )
+  }
+
+  return content
+}
+
 function normalizeDynamicPageDoc(doc) {
   if (!doc || typeof doc !== "object") return null
   const page = { ...doc }
@@ -630,7 +662,8 @@ export const importGeneratedSnapshot = asyncHandler(async (req, res) => {
   const schemaPath = path.join(rootDir, "prisma", "schema.prisma")
   const serverPath = path.join(rootDir, "server.js")
   await fs.writeFile(schemaPath, files.prismaSchema, "utf-8")
-  await fs.writeFile(serverPath, files.serverJs, "utf-8")
+  const normalizedServerJs = ensureServerBodyParserLimits(files.serverJs)
+  await fs.writeFile(serverPath, normalizedServerJs, "utf-8")
 
   for (const dir of files.generatedAppDirs) {
     if (!dir?.name || !Array.isArray(dir?.files)) continue
