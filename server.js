@@ -44,7 +44,10 @@ app.use(cors({
 }))
 
 async function main() {
-  if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev") app.use(morgan("dev"))
+  const nodeEnv = process.env.NODE_ENV
+  const isDevEnv = nodeEnv === "dev" || nodeEnv === "development"
+
+  if (isDevEnv) app.use(morgan("dev"))
 
   app.use("/api/admin/data/import", express.json({ limit: importBodyLimit }))
   app.use(express.json({ limit: requestBodyLimit }))
@@ -77,30 +80,37 @@ async function main() {
   app.use(errorHandler)
 
   const PORT = process.env.PORT || 5000
-  const nodeEnv = process.env.NODE_ENV
 
   let server
   let protocol = "http"
+  const sslKeyPath = process.env.SSL_KEY_PATH
+  const sslCertPath = process.env.SSL_CERT_PATH
+  const hasSslPaths = Boolean(sslKeyPath && sslCertPath)
 
   if (nodeEnv === "production") {
-    protocol = "https"
-    const sslKeyPath = process.env.SSL_KEY_PATH
-    const sslCertPath = process.env.SSL_CERT_PATH
-
-    if (!sslKeyPath || !sslCertPath) {
+    if (!hasSslPaths) {
       throw new Error("Для production (HTTPS) укажите SSL_KEY_PATH и SSL_CERT_PATH в .env")
     }
 
-    const httpsOptions = {
-      key: fs.readFileSync(path.resolve(sslKeyPath)),
-      cert: fs.readFileSync(path.resolve(sslCertPath)),
+    const resolvedSslKeyPath = path.resolve(sslKeyPath)
+    const resolvedSslCertPath = path.resolve(sslCertPath)
+
+    if (!fs.existsSync(resolvedSslKeyPath) || !fs.existsSync(resolvedSslCertPath)) {
+      throw new Error("SSL_KEY_PATH или SSL_CERT_PATH указывают на несуществующие файлы")
     }
 
-    server = https.createServer(httpsOptions, app)
-  } else if (nodeEnv === "dev") {
+    protocol = "https"
+    server = https.createServer(
+      {
+        key: fs.readFileSync(resolvedSslKeyPath),
+        cert: fs.readFileSync(resolvedSslCertPath),
+      },
+      app
+    )
+  } else if (isDevEnv) {
     server = http.createServer(app)
   } else {
-    throw new Error('NODE_ENV должен быть "production" или "dev"')
+    throw new Error('NODE_ENV должен быть "production", "dev" или "development"')
   }
 
   server.listen(PORT, () => {
