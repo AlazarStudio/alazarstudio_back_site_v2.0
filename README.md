@@ -42,6 +42,7 @@ JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 
 ```env
 NODE_ENV=production
+# PORT можно не указывать (по умолчанию будет 443)
 SSL_CERT_PATH=/etc/letsencrypt/live/your-domain/fullchain.pem
 SSL_KEY_PATH=/etc/letsencrypt/live/your-domain/privkey.pem
 ```

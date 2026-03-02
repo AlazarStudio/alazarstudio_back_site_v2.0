@@ -79,7 +79,7 @@ async function main() {
   app.use(notFound)
   app.use(errorHandler)
 
-  const PORT = process.env.PORT || 5000
+  const PORT = process.env.PORT || (nodeEnv === "production" ? 443 : 5000)
 
   let server
   let protocol = "http"
