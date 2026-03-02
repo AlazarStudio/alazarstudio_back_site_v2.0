@@ -2,6 +2,9 @@ import dotenv from "dotenv"
 import express from "express"
 import morgan from "morgan"
 import path from "path"
+import fs from "fs"
+import http from "http"
+import https from "https"
 
 import { errorHandler, notFound } from "./app/middleware/error.middleware.js"
 import { prisma } from "./app/prisma.js"
@@ -41,7 +44,7 @@ app.use(cors({
 }))
 
 async function main() {
-  if (process.env.NODE_ENV === "development") app.use(morgan("dev"))
+  if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev") app.use(morgan("dev"))
 
   app.use("/api/admin/data/import", express.json({ limit: importBodyLimit }))
   app.use(express.json({ limit: requestBodyLimit }))
@@ -74,26 +77,50 @@ async function main() {
   app.use(errorHandler)
 
   const PORT = process.env.PORT || 5000
+  const nodeEnv = process.env.NODE_ENV
 
-  const server = app.listen(
-    PORT,
-    console.log(`Server running in ${process.env.NODE_ENV} on port ${PORT}`)
-  )
+  let server
+  let protocol = "http"
+
+  if (nodeEnv === "production") {
+    protocol = "https"
+    const sslKeyPath = process.env.SSL_KEY_PATH
+    const sslCertPath = process.env.SSL_CERT_PATH
+
+    if (!sslKeyPath || !sslCertPath) {
+      throw new Error("Для production (HTTPS) укажите SSL_KEY_PATH и SSL_CERT_PATH в .env")
+    }
+
+    const httpsOptions = {
+      key: fs.readFileSync(path.resolve(sslKeyPath)),
+      cert: fs.readFileSync(path.resolve(sslCertPath)),
+    }
+
+    server = https.createServer(httpsOptions, app)
+  } else if (nodeEnv === "dev") {
+    server = http.createServer(app)
+  } else {
+    throw new Error('NODE_ENV должен быть "production" или "dev"')
+  }
+
+  server.listen(PORT, () => {
+    console.log(`Server running in ${nodeEnv} on ${protocol}://localhost:${PORT}`)
+  })
 
   // Graceful shutdown
   process.on("SIGTERM", async () => {
-    console.log("SIGTERM signal received: closing HTTP server")
+    console.log(`SIGTERM signal received: closing ${protocol.toUpperCase()} server`)
     server.close(async () => {
       await prisma.$disconnect()
-      console.log("HTTP server closed")
+      console.log(`${protocol.toUpperCase()} server closed`)
     })
   })
 
   process.on("SIGINT", async () => {
-    console.log("SIGINT signal received: closing HTTP server")
+    console.log(`SIGINT signal received: closing ${protocol.toUpperCase()} server`)
     server.close(async () => {
       await prisma.$disconnect()
-      console.log("HTTP server closed")
+      console.log(`${protocol.toUpperCase()} server closed`)
       process.exit(0)
     })
   })
