@@ -155,3 +155,52 @@ model TeamStructure {
   
   @@map("team_structures")
 }
+
+model News {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isPublished Boolean @default(false)
+  nazvanie String?
+  data DateTime?
+  prev_yu String?
+  kratkoe_opisanie String?
+  additionalBlocks Json?
+  
+  @@map("newss")
+}
+
+
+
+model NewsStructure {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  fields    Json?
+  
+  @@map("news_structures")
+}
+
+model Stocks {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isPublished Boolean @default(false)
+  nazvanie String?
+  kratkoe_opisanie String?
+  opisanie String?
+  data DateTime?
+  prev_yu String?
+  additionalBlocks Json?
+  
+  @@map("stockss")
+}
+
+model StocksStructure {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  fields    Json?
+  
+  @@map("stocks_structures")
+}

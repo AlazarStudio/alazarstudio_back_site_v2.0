@@ -19,6 +19,10 @@ import tagsRoutes from "./app/tags/tags.routes.js"
 import tagsStructureRoutes from "./app/tags/tagsStructure.routes.js"
 import teamRoutes from "./app/team/team.routes.js"
 import teamStructureRoutes from "./app/team/teamStructure.routes.js"
+import newsRoutes from "./app/news/news.routes.js"
+import newsStructureRoutes from "./app/news/newsStructure.routes.js"
+import stocksRoutes from "./app/stocks/stocks.routes.js"
+import stocksStructureRoutes from "./app/stocks/stocksStructure.routes.js"
 
 import cors from "cors"
 
@@ -57,6 +61,10 @@ async function main() {
   app.use("/api/tagsStructure", tagsStructureRoutes)
   app.use("/api/team", teamRoutes)
   app.use("/api/teamStructure", teamStructureRoutes)
+  app.use("/api/news", newsRoutes)
+  app.use("/api/newsStructure", newsStructureRoutes)
+  app.use("/api/stocks", stocksRoutes)
+  app.use("/api/stocksStructure", stocksStructureRoutes)
 
   app.use(notFound)
   app.use(errorHandler)
