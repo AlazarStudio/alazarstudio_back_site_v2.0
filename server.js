@@ -37,7 +37,7 @@ const importBodyLimit = process.env.REQUEST_IMPORT_BODY_LIMIT || "1gb"
 
 // Настройка CORS для работы с фронтендом
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'https://alazarstudio.ru'], 
+  origin: ['http://localhost:3000', 'http://localhost:5173', 'https://alazarstudio.ru', 'https://xn--80aaa1as7a.xn--p1ai/'], 
   credentials: true, // Разрешаем отправку cookies и авторизационных заголовков
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
