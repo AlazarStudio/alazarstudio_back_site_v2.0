@@ -6,6 +6,13 @@ import sharp from "sharp"
 
 const uploadsDir = path.resolve("uploads")
 
+// Форматы с анимацией — не конвертируем в webp, иначе анимация теряется
+const ANIMATED_IMAGE_MIMETYPES = ["image/gif"]
+const ANIMATED_EXTENSIONS = [".gif"]
+const MAX_IMAGE_DIMENSION = 2560
+const WEBP_QUALITY = 78
+const WEBP_EFFORT = 6
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     try {
@@ -42,19 +49,33 @@ export const uploadMedia = asyncHandler(async (req, res) => {
   const fileExt = path.extname(req.file.filename || "").toLowerCase()
   const isImage = typeof req.file.mimetype === "string" && req.file.mimetype.startsWith("image/")
   const isAlreadyWebp = req.file.mimetype === "image/webp" || fileExt === ".webp"
+  const isAnimated =
+    ANIMATED_IMAGE_MIMETYPES.includes(req.file.mimetype) || ANIMATED_EXTENSIONS.includes(fileExt)
   let filename = req.file.filename
   let url = `/uploads/${filename}`
   let mimetype = req.file.mimetype
   let size = req.file.size
 
-  if (isImage && !isAlreadyWebp) {
+  if (isImage && !isAlreadyWebp && !isAnimated) {
     const inputPath = req.file.path
     const parsed = path.parse(req.file.filename)
     const webpFilename = `${parsed.name}.webp`
     const webpPath = path.join(uploadsDir, webpFilename)
 
     try {
-      await sharp(inputPath).rotate().webp({ quality: 82 }).toFile(webpPath)
+      let pipeline = sharp(inputPath).rotate()
+      const meta = await pipeline.metadata()
+      const w = meta.width || 0
+      const h = meta.height || 0
+      if (w > MAX_IMAGE_DIMENSION || h > MAX_IMAGE_DIMENSION) {
+        pipeline = pipeline.resize(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION, {
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+      }
+      await pipeline
+        .webp({ quality: WEBP_QUALITY, effort: WEBP_EFFORT })
+        .toFile(webpPath)
       fs.unlinkSync(inputPath)
       const stats = fs.statSync(webpPath)
       filename = webpFilename
