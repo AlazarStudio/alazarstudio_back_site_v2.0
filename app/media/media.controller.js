@@ -162,7 +162,7 @@ export const cropMedia = asyncHandler(async (req, res) => {
       })
     } catch (err) {
       if (fs.existsSync(outputPath)) try { fs.unlinkSync(outputPath) } catch (_) {}
-      if (fs.existsSync(inputPath)) try { fs.unlinkSync(inputPath) } catch (_) }
+      if (fs.existsSync(inputPath)) try { fs.unlinkSync(inputPath) } catch (_) {}
       throw err
     }
   }
