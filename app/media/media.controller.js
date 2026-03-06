@@ -1,8 +1,12 @@
 import fs from "fs"
 import path from "path"
+import { execFile } from "child_process"
+import { promisify } from "util"
 import asyncHandler from "express-async-handler"
 import multer from "multer"
 import sharp from "sharp"
+
+const execFileAsync = promisify(execFile)
 
 const uploadsDir = path.resolve("uploads")
 
@@ -96,4 +100,130 @@ export const uploadMedia = asyncHandler(async (req, res) => {
     mimetype,
     size,
   })
+})
+
+/**
+ * Кроп анимированного GIF через ImageMagick (сохраняет все кадры).
+ * Требуется установленный ImageMagick (magick или convert в PATH).
+ */
+async function cropAnimatedGif(inputPath, outputPath, x, y, width, height) {
+  const cropArg = `${Math.round(width)}x${Math.round(height)}+${Math.round(x)}+${Math.round(y)}`
+  const args = [inputPath, "-coalesce", "-repage", "0x0", "-crop", cropArg, "+repage", outputPath]
+  try {
+    await execFileAsync("magick", args)
+    return true
+  } catch (e1) {
+    try {
+      await execFileAsync("convert", args)
+      return true
+    } catch (e2) {
+      throw new Error("ImageMagick не найден. Установите ImageMagick для кропа анимированных GIF.")
+    }
+  }
+}
+
+// @desc    Crop image (GIF — с сохранением анимации через ImageMagick)
+// @route   POST /api/admin/media/crop
+// @access  Private (Admin)
+// Body: multipart file + cropX, cropY, cropWidth, cropHeight (числа)
+export const cropMedia = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    res.status(400)
+    throw new Error("No file uploaded")
+  }
+
+  const x = Number(req.body.cropX)
+  const y = Number(req.body.cropY)
+  const w = Number(req.body.cropWidth)
+  const h = Number(req.body.cropHeight)
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(w) || !Number.isFinite(h) || w < 1 || h < 1) {
+    res.status(400)
+    throw new Error("Invalid crop: cropX, cropY, cropWidth, cropHeight must be valid numbers")
+  }
+
+  const inputPath = req.file.path
+  const fileExt = path.extname(req.file.filename || "").toLowerCase()
+  const mimetype = (req.file.mimetype || "").toLowerCase()
+  const isGif = mimetype === "image/gif" || fileExt === ".gif"
+
+  if (isGif) {
+    const parsed = path.parse(req.file.filename)
+    const outFilename = `${parsed.name}-cropped${parsed.ext}`
+    const outputPath = path.join(uploadsDir, outFilename)
+    try {
+      await cropAnimatedGif(inputPath, outputPath, x, y, w, h)
+      fs.unlinkSync(inputPath)
+      const stats = fs.statSync(outputPath)
+      return res.status(201).json({
+        url: `/uploads/${outFilename}`,
+        filename: outFilename,
+        mimetype: "image/gif",
+        size: stats.size,
+      })
+    } catch (err) {
+      if (fs.existsSync(outputPath)) try { fs.unlinkSync(outputPath) } catch (_) {}
+      if (fs.existsSync(inputPath)) try { fs.unlinkSync(inputPath) } catch (_) }
+      throw err
+    }
+  }
+
+  // Не-GIF: кроп через sharp, затем как при обычном upload (webp и т.д.)
+  const parsed = path.parse(req.file.filename)
+  const isImage = mimetype.startsWith("image/")
+  const isAlreadyWebp = mimetype === "image/webp" || fileExt === ".webp"
+  const isAnimated = ANIMATED_IMAGE_MIMETYPES.includes(mimetype) || ANIMATED_EXTENSIONS.includes(fileExt)
+
+  let pipeline = sharp(inputPath).extract({
+    left: Math.round(x),
+    top: Math.round(y),
+    width: Math.round(w),
+    height: Math.round(h),
+  }).rotate()
+
+  if (isImage && !isAlreadyWebp && !isAnimated) {
+    const webpFilename = `${parsed.name}-cropped.webp`
+    const webpPath = path.join(uploadsDir, webpFilename)
+    try {
+      const meta = await pipeline.metadata()
+      const width = meta.width || w
+      const height = meta.height || h
+      if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+        pipeline = pipeline.resize(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION, {
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+      }
+      await pipeline.webp({ quality: WEBP_QUALITY, effort: WEBP_EFFORT }).toFile(webpPath)
+      fs.unlinkSync(inputPath)
+      const stats = fs.statSync(webpPath)
+      return res.status(201).json({
+        url: `/uploads/${webpFilename}`,
+        filename: webpFilename,
+        mimetype: "image/webp",
+        size: stats.size,
+      })
+    } catch (error) {
+      if (fs.existsSync(webpPath)) try { fs.unlinkSync(webpPath) } catch (_) {}
+      pipeline = sharp(inputPath)
+        .extract({ left: Math.round(x), top: Math.round(y), width: Math.round(w), height: Math.round(h) })
+        .rotate()
+    }
+  }
+
+  // Оставить как есть (например PNG после кропа или fallback после ошибки webp)
+  const outFilename = `${parsed.name}-cropped${fileExt || ".png"}`
+  const outputPath = path.join(uploadsDir, outFilename)
+  try {
+    await pipeline.toFile(outputPath)
+    fs.unlinkSync(inputPath)
+    const stats = fs.statSync(outputPath)
+    return res.status(201).json({
+      url: `/uploads/${outFilename}`,
+      filename: outFilename,
+      mimetype: req.file.mimetype,
+      size: stats.size,
+    })
+  } finally {
+    if (fs.existsSync(inputPath)) try { fs.unlinkSync(inputPath) } catch (_) {}
+  }
 })
