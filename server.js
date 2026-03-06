@@ -43,6 +43,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 
+// ВРЕМЕННО: лог каждого входящего запроса (проверить, доходят ли запросы с алазар.рф)
+app.use((req, res, next) => {
+  const origin = req.get('Origin') || '(no origin)'
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} | Origin: ${origin}`)
+  next()
+})
+
 async function main() {
   const nodeEnv = process.env.NODE_ENV
   const isDevEnv = nodeEnv === "dev" || nodeEnv === "development"
