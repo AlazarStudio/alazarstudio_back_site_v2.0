@@ -36,8 +36,15 @@ const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || "50mb"
 const importBodyLimit = process.env.REQUEST_IMPORT_BODY_LIMIT || "1gb"
 
 // Настройка CORS для работы с фронтендом
+// Важно: Origin в браузере приходит без слэша в конце; для IDN домена браузер может слать punycode (xn--...)
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'https://alazarstudio.ru', 'https://алазар.рф', 'https://xn--80aaa1as7a.xn--p1ai/'], 
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://alazarstudio.ru',
+    'https://алазар.рф',
+    'https://xn--80aaa1as7a.xn--p1ai',  // punycode для алазар.рф — без слэша в конце
+  ],
   credentials: true, // Разрешаем отправку cookies и авторизационных заголовков
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
