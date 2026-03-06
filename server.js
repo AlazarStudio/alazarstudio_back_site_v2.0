@@ -35,17 +35,29 @@ const app = express()
 const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || "50mb"
 const importBodyLimit = process.env.REQUEST_IMPORT_BODY_LIMIT || "1gb"
 
+// Разрешённые origins для CORS (без слэша в конце; браузер может слать алазар.рф в punycode)
+const ALLOWED_ORIGINS = new Set([
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://alazarstudio.ru',
+  'https://алазар.рф',
+  'https://xn--80aaa1as7a.xn--p1ai',
+])
+
+function normalizeOrigin(origin) {
+  if (!origin || typeof origin !== 'string') return ''
+  return origin.trim().replace(/\/+$/, '')
+}
+
 // Настройка CORS для работы с фронтендом
-// Важно: Origin в браузере приходит без слэша в конце; для IDN домена браузер может слать punycode (xn--...)
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://alazarstudio.ru',
-    'https://алазар.рф',
-    'https://xn--80aaa1as7a.xn--p1ai',  // punycode для алазар.рф — без слэша в конце
-  ],
-  credentials: true, // Разрешаем отправку cookies и авторизационных заголовков
+  origin: (reqOrigin, callback) => {
+    const normalized = normalizeOrigin(reqOrigin)
+    if (!normalized) return callback(null, false)
+    if (ALLOWED_ORIGINS.has(normalized)) return callback(null, reqOrigin)
+    callback(null, false)
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
