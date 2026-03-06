@@ -36,9 +36,24 @@ const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || "50mb"
 const importBodyLimit = process.env.REQUEST_IMPORT_BODY_LIMIT || "1gb"
 
 // Настройка CORS для работы с фронтендом
+const ALLOWED_ORIGINS = new Set([
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://alazarstudio.ru',
+  'https://www.alazarstudio.ru',
+  'https://xn--80aaa1as7a.xn--p1ai',      // алазар.рф
+  'https://www.xn--80aaa1as7a.xn--p1ai',   // www.алазар.рф
+  'http://xn--80aaa1as7a.xn--p1ai',        // http вариант
+])
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'https://alazarstudio.ru', 'https://алазар.рф', 'https://xn--80aaa1as7a.xn--p1ai'], 
-  credentials: true, // Разрешаем отправку cookies и авторизационных заголовков
+  origin(origin, callback) {
+    if (!origin || ALLOWED_ORIGINS.has(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error(`CORS: origin ${origin} not allowed`))
+    }
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
