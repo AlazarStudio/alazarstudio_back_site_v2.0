@@ -60,7 +60,7 @@ app.use(cors({
 
 async function main() {
   const nodeEnv = process.env.NODE_ENV
-  const isDevEnv = nodeEnv === "dev" || nodeEnv === "development"
+  const isDevEnv = nodeEnv === "dev" || nodeEnv === "development" 
 
   if (isDevEnv) app.use(morgan("dev"))
 
