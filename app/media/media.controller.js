@@ -1,12 +1,8 @@
 import fs from "fs"
 import path from "path"
-import { execFile } from "child_process"
-import { promisify } from "util"
 import asyncHandler from "express-async-handler"
 import multer from "multer"
 import sharp from "sharp"
-
-const execFileAsync = promisify(execFile)
 
 const uploadsDir = path.resolve("uploads")
 
@@ -102,27 +98,7 @@ export const uploadMedia = asyncHandler(async (req, res) => {
   })
 })
 
-/**
- * Кроп анимированного GIF через ImageMagick (сохраняет все кадры).
- * Требуется установленный ImageMagick (magick или convert в PATH).
- */
-async function cropAnimatedGif(inputPath, outputPath, x, y, width, height) {
-  const cropArg = `${Math.round(width)}x${Math.round(height)}+${Math.round(x)}+${Math.round(y)}`
-  const args = [inputPath, "-coalesce", "-repage", "0x0", "-crop", cropArg, "+repage", outputPath]
-  try {
-    await execFileAsync("magick", args)
-    return true
-  } catch (e1) {
-    try {
-      await execFileAsync("convert", args)
-      return true
-    } catch (e2) {
-      throw new Error("ImageMagick не найден. Установите ImageMagick для кропа анимированных GIF.")
-    }
-  }
-}
-
-// @desc    Crop image (GIF — с сохранением анимации через ImageMagick)
+// @desc    Crop image (GIF не кропаем — сохраняем как есть)
 // @route   POST /api/admin/media/crop
 // @access  Private (Admin)
 // Body: multipart file + cropX, cropY, cropWidth, cropHeight (числа)
@@ -150,21 +126,15 @@ export const cropMedia = asyncHandler(async (req, res) => {
     const parsed = path.parse(req.file.filename)
     const outFilename = `${parsed.name}-cropped${parsed.ext}`
     const outputPath = path.join(uploadsDir, outFilename)
-    try {
-      await cropAnimatedGif(inputPath, outputPath, x, y, w, h)
-      fs.unlinkSync(inputPath)
-      const stats = fs.statSync(outputPath)
-      return res.status(201).json({
-        url: `/uploads/${outFilename}`,
-        filename: outFilename,
-        mimetype: "image/gif",
-        size: stats.size,
-      })
-    } catch (err) {
-      if (fs.existsSync(outputPath)) try { fs.unlinkSync(outputPath) } catch (_) {}
-      if (fs.existsSync(inputPath)) try { fs.unlinkSync(inputPath) } catch (_) {}
-      throw err
-    }
+    fs.copyFileSync(inputPath, outputPath)
+    fs.unlinkSync(inputPath)
+    const stats = fs.statSync(outputPath)
+    return res.status(201).json({
+      url: `/uploads/${outFilename}`,
+      filename: outFilename,
+      mimetype: "image/gif",
+      size: stats.size,
+    })
   }
 
   // Не-GIF: кроп через sharp, затем как при обычном upload (webp и т.д.)
