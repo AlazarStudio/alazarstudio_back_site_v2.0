@@ -161,9 +161,9 @@ function normalizeSlug(raw = "") {
 function resourceNameToSlug(resourceName = "") {
   return String(resourceName)
     .trim()
-    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-    .replace(/[\s_]+/g, "-")
-    .toLowerCase()
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[\s_]+/g, "_")
+    .toLowerCase();
 }
 
 const DYNAMIC_PAGES_COLLECTION = "dynamic_pages"
