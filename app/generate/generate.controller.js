@@ -38,6 +38,17 @@ const CORE_APP_DIRS = new Set([
 ])
 const SYSTEM_COLLECTIONS = new Set(["User", "configs"])
 
+// Поля для контроллера Menu (совпадают с фронтом при генерации ресурса Menu)
+const MENU_CONTROLLER_FIELDS = [
+  { name: "label", type: "String", required: true },
+  { name: "url", type: "String", required: true },
+  { name: "order", type: "Int", required: false },
+  { name: "isVisible", type: "Boolean", required: false },
+  { name: "icon", type: "String", required: false },
+  { name: "iconType", type: "String", required: false },
+  { name: "isSystem", type: "Boolean", required: false },
+]
+
 async function listGeneratedAppDirs() {
   const entries = await fs.readdir(appDir, { withFileTypes: true })
   return entries
@@ -673,6 +684,20 @@ export const importGeneratedSnapshot = asyncHandler(async (req, res) => {
     const dirPath = path.join(appDir, dir.name)
     await fs.mkdir(dirPath, { recursive: true })
     await writeSnapshotDir(dirPath, dir.files)
+  }
+
+  // После импорта всегда подставляем корректный menu.controller.js с поддержкой publicUrlTemplate/adminUi/publicLink,
+  // чтобы старые снапшоты не затирали исправление.
+  const menuDirPath = path.join(appDir, "menu")
+  const menuControllerPath = path.join(menuDirPath, "menu.controller.js")
+  try {
+    const stat = await fs.stat(menuControllerPath)
+    if (stat && stat.isFile()) {
+      const menuControllerContent = generateController("Menu", MENU_CONTROLLER_FIELDS, "collectionBulk")
+      await fs.writeFile(menuControllerPath, menuControllerContent, "utf-8")
+    }
+  } catch {
+    // Файла нет или не удалось перезаписать — пропускаем
   }
 
   for (const collection of database.collections) {
