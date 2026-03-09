@@ -26,6 +26,10 @@ import newsRoutes from "./app/news/news.routes.js"
 import newsStructureRoutes from "./app/news/newsStructure.routes.js"
 import stocksRoutes from "./app/stocks/stocks.routes.js"
 import stocksStructureRoutes from "./app/stocks/stocksStructure.routes.js"
+import servicesRoutes from "./app/services/services.routes.js"
+import servicesStructureRoutes from "./app/services/servicesStructure.routes.js"
+import filterRoutes from "./app/filter/filter.routes.js"
+import filterStructureRoutes from "./app/filter/filterStructure.routes.js"
 
 import cors from "cors"
 
@@ -60,7 +64,7 @@ app.use(cors({
 
 async function main() {
   const nodeEnv = process.env.NODE_ENV
-  const isDevEnv = nodeEnv === "dev" || nodeEnv === "development" 
+  const isDevEnv = nodeEnv === "dev" || nodeEnv === "development"
 
   if (isDevEnv) app.use(morgan("dev"))
 
@@ -90,6 +94,10 @@ async function main() {
   app.use("/api/newsStructure", newsStructureRoutes)
   app.use("/api/stocks", stocksRoutes)
   app.use("/api/stocksStructure", stocksStructureRoutes)
+  app.use("/api/services", servicesRoutes)
+  app.use("/api/servicesStructure", servicesStructureRoutes)
+  app.use("/api/filter", filterRoutes)
+  app.use("/api/filterStructure", filterStructureRoutes)
 
   app.use(notFound)
   app.use(errorHandler)

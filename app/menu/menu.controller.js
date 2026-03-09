@@ -15,7 +15,23 @@ function sanitizeCreateData(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return { isPublished: false }
   }
-  const { id, createdAt, updatedAt, isPublished, ...rest } = payload
+  const {
+    id,
+    createdAt,
+    updatedAt,
+    isPublished,
+    publicUrlTemplate,
+    adminUi,
+    publicLink,
+    ...rest
+  } = payload
+
+  // Поля, которые не входят в схему Menu — переносим в additionalBlocks
+  const extraForBlocks = {}
+  if (publicUrlTemplate !== undefined) extraForBlocks.publicUrlTemplate = publicUrlTemplate
+  if (adminUi !== undefined) extraForBlocks.adminUi = adminUi
+  if (publicLink !== undefined) extraForBlocks.publicLink = publicLink
+
   const keyAliases = {
     isVisible: "is_visible",
     iconType: "icon_type",
@@ -24,8 +40,29 @@ function sanitizeCreateData(payload) {
   const normalizedRest = Object.fromEntries(
     Object.entries(rest).map(([key, value]) => [keyAliases[key] || key, value])
   )
+
+  // Допустимые поля модели Menu (prisma/schema.prisma)
+  const allowedKeys = new Set([
+    "label", "url", "order", "is_visible", "icon", "icon_type", "is_system",
+    "additionalBlocks"
+  ])
+  const data = {}
+  for (const [key, value] of Object.entries(normalizedRest)) {
+    if (allowedKeys.has(key)) data[key] = value
+  }
+
+  const existingBlocks =
+    data.additionalBlocks && typeof data.additionalBlocks === "object" && !Array.isArray(data.additionalBlocks)
+      ? data.additionalBlocks
+      : {}
+  if (Object.keys(extraForBlocks).length > 0) {
+    data.additionalBlocks = { ...existingBlocks, ...extraForBlocks }
+  } else if (data.additionalBlocks === undefined) {
+    data.additionalBlocks = existingBlocks
+  }
+
   return {
-    ...normalizedRest,
+    ...data,
     isPublished: typeof isPublished === "boolean" ? isPublished : false,
   }
 }

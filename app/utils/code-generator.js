@@ -116,22 +116,61 @@ export function generateController(resourceName, fields = [], resourceType = nul
   const routeName = resourceName.toLowerCase()
   const isSingleton = isSingletonResource(resourceName, fields, resourceType)
   const isBulkCollection = resourceType === 'collectionBulk'
-  
-  if (isBulkCollection) {
-    return `import asyncHandler from "express-async-handler"
-import { prisma } from "../prisma.js"
 
-function getModelClient(prismaClient, baseName) {
-  const lower = baseName.toLowerCase()
-  const singular = lower.endsWith('s') ? lower.slice(0, -1) : lower
-  const candidates = [lower, singular, \`\${singular}Item\`]
-  for (const key of candidates) {
-    if (prismaClient[key]) return prismaClient[key]
+  // Для Menu — расширенная sanitize: publicUrlTemplate/adminUi/publicLink в additionalBlocks, только допустимые поля Prisma
+  const sanitizeCreateDataBulk = resourceName === 'Menu' ? `function sanitizeCreateData(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { isPublished: false }
   }
-  return null
-}
+  const {
+    id,
+    createdAt,
+    updatedAt,
+    isPublished,
+    publicUrlTemplate,
+    adminUi,
+    publicLink,
+    ...rest
+  } = payload
 
-function sanitizeCreateData(payload) {
+  const extraForBlocks = {}
+  if (publicUrlTemplate !== undefined) extraForBlocks.publicUrlTemplate = publicUrlTemplate
+  if (adminUi !== undefined) extraForBlocks.adminUi = adminUi
+  if (publicLink !== undefined) extraForBlocks.publicLink = publicLink
+
+  const keyAliases = {
+    isVisible: "is_visible",
+    iconType: "icon_type",
+    isSystem: "is_system",
+  }
+  const normalizedRest = Object.fromEntries(
+    Object.entries(rest).map(([key, value]) => [keyAliases[key] || key, value])
+  )
+
+  const allowedKeys = new Set([
+    "label", "url", "order", "is_visible", "icon", "icon_type", "is_system",
+    "additionalBlocks"
+  ])
+  const data = {}
+  for (const [key, value] of Object.entries(normalizedRest)) {
+    if (allowedKeys.has(key)) data[key] = value
+  }
+
+  const existingBlocks =
+    data.additionalBlocks && typeof data.additionalBlocks === "object" && !Array.isArray(data.additionalBlocks)
+      ? data.additionalBlocks
+      : {}
+  if (Object.keys(extraForBlocks).length > 0) {
+    data.additionalBlocks = { ...existingBlocks, ...extraForBlocks }
+  } else if (data.additionalBlocks === undefined) {
+    data.additionalBlocks = existingBlocks
+  }
+
+  return {
+    ...data,
+    isPublished: typeof isPublished === "boolean" ? isPublished : false,
+  }
+}` : `function sanitizeCreateData(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return { isPublished: false }
   }
@@ -148,7 +187,23 @@ function sanitizeCreateData(payload) {
     ...normalizedRest,
     isPublished: typeof isPublished === "boolean" ? isPublished : false,
   }
+}`
+
+  if (isBulkCollection) {
+    return `import asyncHandler from "express-async-handler"
+import { prisma } from "../prisma.js"
+
+function getModelClient(prismaClient, baseName) {
+  const lower = baseName.toLowerCase()
+  const singular = lower.endsWith('s') ? lower.slice(0, -1) : lower
+  const candidates = [lower, singular, \`\${singular}Item\`]
+  for (const key of candidates) {
+    if (prismaClient[key]) return prismaClient[key]
+  }
+  return null
 }
+
+${sanitizeCreateDataBulk}
 
 const COLLECTION_NAME = "${routeName}s"
 
