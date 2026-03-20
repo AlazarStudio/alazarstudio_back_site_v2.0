@@ -117,6 +117,17 @@ export function generateController(resourceName, fields = [], resourceType = nul
   const isSingleton = isSingletonResource(resourceName, fields, resourceType)
   const isBulkCollection = resourceType === 'collectionBulk'
 
+  const dateTimeFieldNames = fields
+    .filter(f => f.type === 'DateTime')
+    .map(f => camelToSnake(f.name))
+
+  const dateTimeTimestampUpdates = dateTimeFieldNames.map(fn => `,
+      {
+        q: { ${fn}: { $type: "string" } },
+        u: [{ $set: { ${fn}: { $toDate: "$${fn}" } } }],
+        multi: true
+      }`).join('')
+
   // Для Menu — расширенная sanitize: publicUrlTemplate/adminUi/publicLink в additionalBlocks, только допустимые поля Prisma
   const sanitizeCreateDataBulk = resourceName === 'Menu' ? `function sanitizeCreateData(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -207,6 +218,23 @@ ${sanitizeCreateDataBulk}
 
 const COLLECTION_NAME = "${routeName}s"
 
+const ISO_DATE_RE = /^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?Z?)?$/
+
+function convertDatesForMongo(obj, forPipeline = false) {
+  if (!obj || typeof obj !== "object") return obj
+  const result = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === "string" && ISO_DATE_RE.test(value) && !isNaN(new Date(value).getTime())) {
+      result[key] = forPipeline
+        ? { $toDate: new Date(value).toISOString() }
+        : { $date: new Date(value).toISOString() }
+    } else {
+      result[key] = value
+    }
+  }
+  return result
+}
+
 function asObjectIdFilter(id) {
   return { _id: { $oid: String(id) } }
 }
@@ -244,7 +272,7 @@ async function ensureMongoTimestamps() {
         q: { updated_at: { $exists: false } },
         u: [{ $set: { updated_at: "$$NOW" } }],
         multi: true
-      }
+      }${dateTimeTimestampUpdates}
     ]
   })
 }
@@ -273,7 +301,7 @@ async function createViaMongo(payload) {
   await prisma.$runCommandRaw({
     insert: COLLECTION_NAME,
     documents: [{
-      ...data
+      ...convertDatesForMongo(data)
     }]
   })
   await ensureMongoTimestamps()
@@ -294,7 +322,7 @@ async function replaceCollectionViaMongo(items) {
 
   const docs = (items || []).map((item) => {
     return {
-      ...sanitizeCreateData(item),
+      ...convertDatesForMongo(sanitizeCreateData(item)),
     }
   })
 
@@ -324,6 +352,7 @@ async function deleteViaMongo(id) {
 // @access  Private/Public
 export const get${modelName}s = asyncHandler(async (req, res) => {
   const model = getModelClient(prisma, "${routeName}")
+  await ensureMongoTimestamps()
   const items = model
     ? await model.findMany({
       orderBy: {
@@ -340,6 +369,7 @@ export const get${modelName}s = asyncHandler(async (req, res) => {
 // @access  Private
 export const get${modelName}ById = asyncHandler(async (req, res) => {
   const model = getModelClient(prisma, "${routeName}")
+  await ensureMongoTimestamps()
   const item = model
     ? await model.findUnique({
       where: {
@@ -593,6 +623,23 @@ function sanitizeCreateData(payload) {
   }
 }
 
+const ISO_DATE_RE = /^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?Z?)?$/
+
+function convertDatesForMongo(obj, forPipeline = false) {
+  if (!obj || typeof obj !== "object") return obj
+  const result = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === "string" && ISO_DATE_RE.test(value) && !isNaN(new Date(value).getTime())) {
+      result[key] = forPipeline
+        ? { $toDate: new Date(value).toISOString() }
+        : { $date: new Date(value).toISOString() }
+    } else {
+      result[key] = value
+    }
+  }
+  return result
+}
+
 function getModel() {
   return prisma[MODEL_KEY] || null
 }
@@ -634,7 +681,7 @@ async function ensureMongoTimestamps() {
         q: { updated_at: { $exists: false } },
         u: [{ $set: { updated_at: "$$NOW" } }],
         multi: true
-      }
+      }${dateTimeTimestampUpdates}
     ]
   })
 }
@@ -676,7 +723,7 @@ async function createViaMongo(payload) {
   await prisma.$runCommandRaw({
     insert: COLLECTION_NAME,
     documents: [{
-      ...data
+      ...convertDatesForMongo(data)
     }]
   })
   await ensureMongoTimestamps()
@@ -711,7 +758,7 @@ async function updateViaMongo(id, payload) {
       q: asObjectIdFilter(id),
       u: [{
         $set: {
-          ...sanitized,
+          ...convertDatesForMongo(sanitized, true),
           created_at: { $ifNull: ["$created_at", "$$NOW"] },
           updated_at: "$$NOW"
         }
@@ -740,6 +787,8 @@ export const get${modelName}s = asyncHandler(async (req, res) => {
   const skip = (parseInt(page) - 1) * parseInt(limit)
   const take = parseInt(limit)
   const model = getModel()
+
+  await ensureMongoTimestamps()
 
   let items = []
   let total = 0
@@ -774,6 +823,7 @@ export const get${modelName}s = asyncHandler(async (req, res) => {
 // @route   GET /api/${routeName}/:id
 // @access  Private
 export const get${modelName}ById = asyncHandler(async (req, res) => {
+  await ensureMongoTimestamps()
   const model = getModel()
   const item = model
     ? await model.findUnique({ where: { id: req.params.id } })

@@ -69,6 +69,23 @@ function sanitizeCreateData(payload) {
 
 const COLLECTION_NAME = "menus"
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z?)?$/
+
+function convertDatesForMongo(obj, forPipeline = false) {
+  if (!obj || typeof obj !== "object") return obj
+  const result = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === "string" && ISO_DATE_RE.test(value) && !isNaN(new Date(value).getTime())) {
+      result[key] = forPipeline
+        ? { $toDate: new Date(value).toISOString() }
+        : { $date: new Date(value).toISOString() }
+    } else {
+      result[key] = value
+    }
+  }
+  return result
+}
+
 function asObjectIdFilter(id) {
   return { _id: { $oid: String(id) } }
 }
@@ -135,7 +152,7 @@ async function createViaMongo(payload) {
   await prisma.$runCommandRaw({
     insert: COLLECTION_NAME,
     documents: [{
-      ...data
+      ...convertDatesForMongo(data)
     }]
   })
   await ensureMongoTimestamps()
@@ -156,7 +173,7 @@ async function replaceCollectionViaMongo(items) {
 
   const docs = (items || []).map((item) => {
     return {
-      ...sanitizeCreateData(item),
+      ...convertDatesForMongo(sanitizeCreateData(item)),
     }
   })
 
@@ -186,6 +203,7 @@ async function deleteViaMongo(id) {
 // @access  Private/Public
 export const getMenus = asyncHandler(async (req, res) => {
   const model = getModelClient(prisma, "menu")
+  await ensureMongoTimestamps()
   const items = model
     ? await model.findMany({
       orderBy: {
@@ -202,6 +220,7 @@ export const getMenus = asyncHandler(async (req, res) => {
 // @access  Private
 export const getMenuById = asyncHandler(async (req, res) => {
   const model = getModelClient(prisma, "menu")
+  await ensureMongoTimestamps()
   const item = model
     ? await model.findUnique({
       where: {

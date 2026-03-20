@@ -23,6 +23,23 @@ function sanitizeCreateData(payload) {
   }
 }
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z?)?$/
+
+function convertDatesForMongo(obj, forPipeline = false) {
+  if (!obj || typeof obj !== "object") return obj
+  const result = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === "string" && ISO_DATE_RE.test(value) && !isNaN(new Date(value).getTime())) {
+      result[key] = forPipeline
+        ? { $toDate: new Date(value).toISOString() }
+        : { $date: new Date(value).toISOString() }
+    } else {
+      result[key] = value
+    }
+  }
+  return result
+}
+
 function getModel() {
   return prisma[MODEL_KEY] || null
 }
@@ -63,6 +80,11 @@ async function ensureMongoTimestamps() {
       {
         q: { updated_at: { $exists: false } },
         u: [{ $set: { updated_at: "$$NOW" } }],
+        multi: true
+      },
+      {
+        q: { data: { $type: "string" } },
+        u: [{ $set: { data: { $toDate: "$data" } } }],
         multi: true
       }
     ]
@@ -110,7 +132,7 @@ async function createViaMongo(payload) {
   await prisma.$runCommandRaw({
     insert: COLLECTION_NAME,
     documents: [{
-      ...data
+      ...convertDatesForMongo(data)
     }]
   })
   await ensureMongoTimestamps()
@@ -145,7 +167,7 @@ async function updateViaMongo(id, payload) {
       q: asObjectIdFilter(id),
       u: [{
         $set: {
-          ...sanitized,
+          ...convertDatesForMongo(sanitized, true),
           created_at: { $ifNull: ["$created_at", "$$NOW"] },
           updated_at: "$$NOW"
         }
@@ -174,6 +196,8 @@ export const getNewss = asyncHandler(async (req, res) => {
   const skip = (parseInt(page) - 1) * parseInt(limit)
   const take = parseInt(limit)
   const model = getModel()
+
+  await ensureMongoTimestamps()
 
   let items = []
   let total = 0
@@ -213,6 +237,8 @@ export const getPublicNewss = asyncHandler(async (req, res) => {
   const take = parseInt(limit)
   const model = getModel()
 
+  await ensureMongoTimestamps()
+
   let items = []
   let total = 0
 
@@ -247,6 +273,7 @@ export const getPublicNewss = asyncHandler(async (req, res) => {
 // @route   GET /api/news/:id
 // @access  Private
 export const getNewsById = asyncHandler(async (req, res) => {
+  await ensureMongoTimestamps()
   const model = getModel()
   const item = model
     ? await model.findUnique({ where: { id: req.params.id } })
