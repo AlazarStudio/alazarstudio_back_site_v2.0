@@ -12,7 +12,8 @@ const validateContactRequest = validateRequest([
     minLength: 5,
     maxLength: 40,
     custom: (value) => /^[0-9+\-() ]+$/.test(String(value)),
-    customError: "phone must contain only digits and phone symbols",
+    customError:
+      "Телефон: только цифры, пробелы и символы + - ( )",
   },
   { field: "email", required: false, isEmail: true, maxLength: 160 },
   { field: "message", required: true, minLength: 5, maxLength: 5000 },
