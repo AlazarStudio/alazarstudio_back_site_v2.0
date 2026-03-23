@@ -49,7 +49,7 @@ export const sendContactEmail = async ({
   const safeSource = String(source || "").trim()
 
   const text = [
-    "Новая заявка с сайта Alazar Studio",
+    "Новая заявка с сайта",
     "",
     `Имя: ${safeName}`,
     `Телефон: ${safePhone}`,
@@ -61,7 +61,6 @@ export const sendContactEmail = async ({
   ].join("\n")
 
   const html = `
-    <h2>Новая заявка с сайта Alazar Studio</h2>
     <p><strong>Имя:</strong> ${safeName}</p>
     <p><strong>Телефон:</strong> ${safePhone}</p>
     <p><strong>Email:</strong> ${safeEmail || "-"}</p>
@@ -74,7 +73,7 @@ export const sendContactEmail = async ({
     from: mailFrom,
     to: mailTo,
     replyTo: safeEmail || undefined,
-    subject: "Новая заявка с сайта",
+    subject: "Новая заявка с сайта алазар.рф",
     text,
     html,
   })
