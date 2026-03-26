@@ -2,6 +2,7 @@ import express from "express"
 import { protect } from "../middleware/auth.middleware.js"
 import {
   getContactss,
+  getPublicContactss,
   getContactsById,
   createContacts,
   updateContacts,
@@ -9,6 +10,8 @@ import {
 } from "./contacts.controller.js"
 
 const router = express.Router()
+
+router.get("/public", getPublicContactss)
 
 router
   .route("/")
