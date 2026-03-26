@@ -31,6 +31,10 @@ import servicesRoutes from "./app/services/services.routes.js"
 import servicesStructureRoutes from "./app/services/servicesStructure.routes.js"
 import filterRoutes from "./app/filter/filter.routes.js"
 import filterStructureRoutes from "./app/filter/filterStructure.routes.js"
+import filtrsaytaRoutes from "./app/filtrsayta/filtrsayta.routes.js"
+import filtrSaytaStructureRoutes from "./app/filtrsayta/filtrsaytaStructure.routes.js"
+import contactsRoutes from "./app/contacts/contacts.routes.js"
+import contactsStructureRoutes from "./app/contacts/contactsStructure.routes.js"
 
 import cors from "cors"
 
@@ -80,7 +84,7 @@ async function main() {
 
   app.use("/api/auth", authRoutes)
   app.use("/api/users", userRoutes)
-  app.use("/api/config", configRoutes)
+  app.use("/api/config", configRoutes)  
   app.use("/api/contact", contactRoutes)
   app.use("/api/admin", generateRoutes)
   app.use("/api/admin/media", mediaRoutes)
@@ -100,6 +104,10 @@ async function main() {
   app.use("/api/servicesStructure", servicesStructureRoutes)
   app.use("/api/filter", filterRoutes)
   app.use("/api/filterStructure", filterStructureRoutes)
+  app.use("/api/filtrsayta", filtrsaytaRoutes)
+  app.use("/api/filtrsaytaStructure", filtrSaytaStructureRoutes)
+  app.use("/api/contacts", contactsRoutes)
+  app.use("/api/contactsStructure", contactsStructureRoutes)
 
   app.use(notFound)
   app.use(errorHandler)

@@ -78,16 +78,18 @@ model Cases {
   prev_yu String?
   zadacha String?
   reshenie String?
-  logotip String?
-  tegi String?
   komanda String?
+  tegi String?
   dlya_magazina Boolean?
   tsena Int?
   prosmotry Int?
+  opisanie_dlya_magazina String?
   additionalBlocks Json?
   
   @@map("casess")
 }
+
+
 
 
 
@@ -122,6 +124,8 @@ model Tags {
   
   @@map("tagss")
 }
+
+
 
 model TagsStructure {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -165,10 +169,12 @@ model News {
   data DateTime?
   prev_yu String?
   kratkoe_opisanie String?
+  aktsiya Boolean?
   additionalBlocks Json?
   
   @@map("newss")
 }
+
 
 
 
@@ -203,4 +209,91 @@ model StocksStructure {
   fields    Json?
   
   @@map("stocks_structures")
+}
+
+model Services {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isPublished Boolean @default(false)
+  nazvanie String?
+  spisok String?
+  tsena String?
+  opisanie String?
+  additionalBlocks Json?
+  
+  @@map("servicess")
+}
+
+model ServicesStructure {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  fields    Json?
+  
+  @@map("services_structures")
+}
+
+model Filter {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isPublished Boolean @default(false)
+  nazvanie String?
+  additionalBlocks Json?
+  
+  @@map("filters")
+}
+
+model FilterStructure {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  fields    Json?
+  
+  @@map("filter_structures")
+}
+
+model Filtrsayta {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isPublished Boolean @default(false)
+  nazvanie String?
+  tegi String?
+  additionalBlocks Json?
+  
+  @@map("filtrsaytas")
+}
+
+model FiltrsaytaStructure {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  fields    Json?
+  
+  @@map("filtrsayta_structures")
+}
+
+model Contacts {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isPublished Boolean @default(false)
+  adres String?
+  nomer String?
+  e_mail String?
+  sotsial_nye_seti String?
+  additionalBlocks Json?
+  
+  @@map("contactss")
+}
+
+model ContactsStructure {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  fields    Json?
+  
+  @@map("contacts_structures")
 }
